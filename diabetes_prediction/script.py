@@ -17,4 +17,9 @@ from sklearn.model_selection import (train_test_split, GridSearchCV)
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 
+# Read in dataset
+df = pd.read_csv('diabetes_prediction_dataset.csv')
+
+# Information
+
 # 
