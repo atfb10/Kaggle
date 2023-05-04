@@ -395,3 +395,18 @@ fpr, tpr, thresholds = roc_curve(y_test, y_pred)
 roc_auc = auc(fpr, tpr)
 p = RocCurveDisplay(fpr=fpr, tpr=tpr, roc_auc=roc_auc, estimator_name='Diabetes Result Estimator')
 p.plot()
+
+
+# Findings
+'''
+add Codeadd Markdown
+Most models performed with a high level of accuracy, but low recall. This is likely the result of an imbalanced dataset, i.e. many more non-diabetic individuals than diabetic.
+
+Depending on context, the two models I would consider utilizing are the K Nearest Neighbors Classifier, and the Random Forest Ensemble with balanced weight.
+
+The K Nearest Neighbors Classifier has an accuracy of 97% and is wonderfully simple. It only relies upon two features: blood glucose and HbA1c levels to predict diabetes. It has high bias, meaning it is not overfitted and would perform similarly on new blood glucose and HbA1c data.
+
+Likely, the model I would recommend the most, is the Random Forest Meta Learning Model. If the goal of the data set, is to predict when an individual has diabetes, this model performs that task the best; it has the highest recall. It does come at the cost of significantly higher precision, however, meaning that the false positive rate is much higher.
+
+In practice, what the Random Forest Classifier would allow a physician to do is, view a patient's age, blood glucose and HbA1c levels. If those statistics fell below a certain percentage, it could be inferred from the model they are not at risk of diabetes. It they were predicted to be diabetic, further medical tests could be performed on the patient to determine whether or not they are in fact diabetic, or if the model falsely predicted them to be so (false positive).
+'''
