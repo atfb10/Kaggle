@@ -13,6 +13,7 @@ Exploratory and Predictive
 * pip install requirements.txt
 * Run python files via the CLI by changing directies into folder and running 'filename.py'
 * Run Jupyter Notebooks after installing by running jupyter notebook in the CLI
+* Copies of notebooks will be on my kaggle: kaggle.com/aforestier10
 
 ### General Information
 * Each directory contains work from a different data set posted on Kaggle
