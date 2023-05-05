@@ -11,7 +11,7 @@ Exploratory and Predictive
 * Create virtual environment
 * Open virtual environment
 * pip install requirements.txt
-* Run python files via the CLI by changing directies into folder and running 'filename.py'
+* .py files are simply scripts I use to test various sections of code before running in the notebook. Please run final notebooks and do not run .py files
 * Run Jupyter Notebooks after installing by running jupyter notebook in the CLI
 * Copies of notebooks will be on my kaggle: kaggle.com/aforestier10
 

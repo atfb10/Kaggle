@@ -1,7 +1,7 @@
 '''
 Adam Forestier
-Last Updated: May 4, 2023
-File used to write code in before transferring to Kaggle Notebook
+Last Updated: May 5, 2023
+File used to write code in before transferring to Kaggle Notebook.
 '''
 
 # Imports
@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns 
 
+from imblearn.over_sampling import SMOTE
 from sklearn.ensemble import (RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier) 
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LogisticRegression
@@ -179,10 +180,29 @@ print(knn_cr)
 # .. There are too many false negatives. Considering the task of this model, to identify when individuals have diabetes. We need to have higher recall for class 1, even if it is at the expense of other scores
 # .. Let us see if more complex models can perform recall better
 
+sm = SMOTE(random_state=101)
+X, y = sm.fit_resample(X, y)
+
+# Now that we have the best n_neighbors parameter. Create a model with those parameters
+knn_clf = KNeighborsClassifier(n_neighbors=6, metric='minkowski')
+knn_clf.fit(scaled_X_train, y_train)
+y_pred = knn_clf.predict(scaled_X_test)
+
+# Confusion matrix to display precision and recall. 
+knn_cm = confusion_matrix(y_true=y_test, y_pred=y_pred)
+p = ConfusionMatrixDisplay(confusion_matrix=knn_cm, display_labels=knn_clf.classes_)
+p.plot()
+plt.show()
+
+# Classification Report
+knn_cr = classification_report(y_true=y_test, y_pred=y_pred)
+print(knn_cr)
+
 # .. Let's try another distance based classifier. Support Vector Classifier using the 5 strongest correlated features
 strongest_correlated_features = ['heart_disease', 'hypertension', 'bmi', 'age', 'HbA1c_level', 'blood_glucose_level']
 X = final_df[strongest_correlated_features]
 y = final_df['diabetes']
+X, y = sm.fit_resample(X, y)
 
 # Perform train test split
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.1, random_state=101)
@@ -254,6 +274,7 @@ print(svm_balanced_clf_cr)
 # Seperate features and label
 X = final_df.drop('diabetes', axis=1)
 y = final_df['diabetes']
+X, y = sm.fit_resample(X, y)
 
 # Cross validated random forest NOTE: Always do this to get best parameters. commented out to not cook my poor computer
 forest_clf = RandomForestClassifier(random_state=101, oob_score=True)
