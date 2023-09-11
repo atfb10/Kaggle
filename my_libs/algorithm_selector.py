@@ -155,7 +155,12 @@ class ClassifierCreate(ModelPrep):
 class ClassifierSelection(ClassifierCreate):
     def __init__(self, dataset: pd.DataFrame, label: str, classifiers: list, exclude: list) -> None:
         super().__init__(dataset, label, classifiers, exclude)    
-        
+
     # TODO - returns list of dictionaries. key is name of model, value is classification report 
-    def __compare_models(self) -> None:
+    def compare_and_select_model(self) -> None:
+        log_model, log_preds, log_y_values = self.__train_logistic_classifier()
+        forest_model, forest_preds, forest_y_values = self.__train_forest_classifier()
+        xg_model, xg_preds, xg_y_values = self.__train_xgboost_classifier()
+        lgbm_model, lgbm_preds, lgbm_y_values = self.__train_lightgbm_classifier()
+        cat_model, cat_preds, cat_y_values = self.__train_catboost_classifier()
         pass
