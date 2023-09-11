@@ -16,6 +16,7 @@ NOTE: Not for simple models. If all I think I need is a simple KNN model, I shou
 NOTE: SVM not included. Too long to run. If I have a problem SVM's are a good selection for, just create one  
 '''
 
+import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
@@ -41,39 +42,25 @@ XG = 'xgboost'
 L = 'light'
 CAT = 'catboost'
 
-
+# Prep models for training
 class ModelPrep():
 
-    def __init__(self, dataset: pd.DataFrame, label: str, classifiers: list, exclude: list) -> None:
+    def __init__(self, dataset: pd.DataFrame, label: str, classifiers: list, exclude=None) -> None: # Exclude is list, but if not included defaults to none
         self.data = dataset
         self.label = label
         self.classifiers = classifiers
         self.features_to_exclude = exclude
-        return
-    
-    def __drop_exclude_features(self) -> None:
-        self.data = self.data.drop(self.features_to_exclude)
-        return
-
-class ClassificationModelSelect(ModelPrep):
-
-    def __init__(self, dataset: pd.DataFrame, label: str, classifiers: list, exclude: list) -> None:
-        super().__init__(dataset, label, classifiers, exclude)
         self.train_logistic_classifier = False
         self.train_randomforest_classifier = False
         self.train_xgboost = False
         self.train_lightgbm = False
         self.train_catboost = False
-        self.log_clf = None
-        self.forest_clf = None
-        self.xgboost_clf = None
-        self.lightgbm_clf = None
-        self.cat_clf = None
-        return 
-
-    def __compare_models(self) -> None:
-        pass
-
+        return
+    
+    def __drop_exclude_features(self) -> None:
+        self.data = self.data.drop(self.features_to_exclude)
+        return
+    
     def __check_models(self) -> None:
         if LOG in self.classifiers:
             self.train_logistic_classifier = True
@@ -86,44 +73,89 @@ class ClassificationModelSelect(ModelPrep):
         if CAT in self.classifiers:
             self.train_catboost = True
         return
+    
+# Train models, assign them to parameters
+class ClassifierCreate(ModelPrep):
+    def __init__(self, dataset: pd.DataFrame, label: str, classifiers: list, exclude: list) -> None:
+        super().__init__(dataset, label, classifiers, exclude)
+        self.log_clf = None
+        self.forest_clf = None
+        self.xgboost_clf = None
+        self.lightgbm_clf = None
+        self.cat_clf = None
+        return 
 
-    def __train_logistic_classifier(self) -> tuple:
+    def __train_logistic_classifier(self) -> tuple(LogisticRegression, pd.Series):
         '''
-        returns tuple of metrics 
+        return created model its predictions on test data and actual y values
         '''
+        trained_model = None
+        predictions = None
         if self.train_logistic_classifier:
-            pass
-        return (0, 0, 0, 0)
+            X = self.data.drop([self.label], axis=1)
+            y = self.data[self.label]
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.25, random_state=42)
+            scaler = StandardScaler()
+            scaled_X_Train = scaler.fit_transform(X=X_train)
+            scaled_X_Test = scaler.transform(X=X_test)
+            base_clf = LogisticRegression(solver='saga', multi_class='auto', max_iter=5000)
+            param_grid = {
+                'penalty': ['l1', 'l2', 'elasticnet'],
+                'l1_ratio': [.1, .5, .9, .99],
+                'C': np.logspace(0, 10. 5)
+            }
+            grid_clf = GridSearchCV(estimator=base_clf, param_grid=param_grid)
+            grid_clf.fit(X=scaled_X_Train, y=y_train)
+            predictions = grid_clf.predict(X=scaled_X_Test)
+            trained_model = grid_clf
+            self.log_clf = grid_clf
+        return (trained_model, predictions, y_test)
     
     def __train_forest_classifier(self) -> tuple:
         '''
-        returns tuple of metrics 
+        return created model its predictions on test data and actual y values
         '''
+        trained_model = None
+        predictions = None
         if self.train_randomforest_classifier:
-            pass
-        return (0, 0, 0, 0)
+            X = self.data.drop([self.label], axis=1)
+            y = self.data[self.label]
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.25, random_state=42)
+        return (trained_model, predictions, y_test)
     
 
     def __train_xgboost_classifier(self) -> tuple:
         '''
-        returns tuple of metrics 
+        return created model
         '''
+        trained_model = None
+        predictions = None
         if self.train_logistic_classifier:
             pass
-        return (0, 0, 0, 0)
+        return
     
     def __train_lightgbm_classifier(self) -> tuple:
         '''
-        returns tuple of metrics 
+        return created model
         '''
         if self.train_lightgbm:
             pass
         return (0, 0, 0, 0)
 
-    def __train_catboost_classifier(self) -> tuple:
+    def __train_catboost_classifier(self) -> None:
         '''
-        returns tuple of metrics 
+        return created model
         '''
         if self.train_logistic_classifier:
             pass
         return (0, 0, 0, 0)
+    
+
+# select best model
+class ClassifierSelection(ClassifierCreate):
+    def __init__(self, dataset: pd.DataFrame, label: str, classifiers: list, exclude: list) -> None:
+        super().__init__(dataset, label, classifiers, exclude)    
+        
+    # TODO - returns list of dictionaries. key is name of model, value is classification report 
+    def __compare_models(self) -> None:
+        pass
