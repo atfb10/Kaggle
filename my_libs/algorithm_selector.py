@@ -42,25 +42,39 @@ L = 'light'
 CAT = 'catboost'
 
 
-class ClassificationModelSelect():
+class ModelPrep():
 
-    def __init__(self, dataset: pd.DataFrame, classifiers: list, exclude: list) -> None:
+    def __init__(self, dataset: pd.DataFrame, label: str, classifiers: list, exclude: list) -> None:
         self.data = dataset
+        self.label = label
         self.classifiers = classifiers
         self.features_to_exclude = exclude
+        return
+    
+    def __drop_exclude_features(self) -> None:
+        self.data = self.data.drop(self.features_to_exclude)
+        return
+
+class ClassificationModelSelect(ModelPrep):
+
+    def __init__(self, dataset: pd.DataFrame, label: str, classifiers: list, exclude: list) -> None:
+        super().__init__(dataset, label, classifiers, exclude)
         self.train_logistic_classifier = False
         self.train_randomforest_classifier = False
         self.train_xgboost = False
         self.train_lightgbm = False
         self.train_catboost = False
+        self.log_clf = None
+        self.forest_clf = None
+        self.xgboost_clf = None
+        self.lightgbm_clf = None
+        self.cat_clf = None
+        return 
 
     def __compare_models(self) -> None:
         pass
 
     def __check_models(self) -> None:
-        '''
-        update boolean attributes appropriately
-        '''
         if LOG in self.classifiers:
             self.train_logistic_classifier = True
         if F in self.classifiers:
