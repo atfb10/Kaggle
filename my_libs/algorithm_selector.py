@@ -18,6 +18,7 @@ NOTE: SVM not included. Too long to run. If I have a problem SVM's are a good se
 
 import numpy as np
 import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
     accuracy_score, confusion_matrix, classification_report, ConfusionMatrixDisplay, RocCurveDisplay, auc, roc_curve
@@ -28,7 +29,6 @@ from sklearn.preprocessing import StandardScaler
 '''
 TODO:
 models
-- logistic regression
 - randomforest
 - xgboost
 - lightgbm
@@ -55,6 +55,11 @@ class ModelPrep():
         self.train_xgboost = False
         self.train_lightgbm = False
         self.train_catboost = False
+
+        if classifiers:
+            self.__check_models()
+        if exclude:
+            self.__drop_exclude_features()
         return
     
     def __drop_exclude_features(self) -> None:
@@ -91,6 +96,7 @@ class ClassifierCreate(ModelPrep):
         '''
         trained_model = None
         predictions = None
+        y_test = None
         if self.train_logistic_classifier:
             X = self.data.drop([self.label], axis=1)
             y = self.data[self.label]
@@ -117,10 +123,21 @@ class ClassifierCreate(ModelPrep):
         '''
         trained_model = None
         predictions = None
+        y_test = None
         if self.train_randomforest_classifier:
             X = self.data.drop([self.label], axis=1)
             y = self.data[self.label]
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.25, random_state=42)
+            base_clf = RandomForestClassifier(n_estimators=100, oob_score=False, bootstrap=True)
+            param_grid = {
+                'max_features': [3, 4],
+                'max_depth': [3, 4]
+            }
+            grid_clf = GridSearchCV(estimator=base_clf, param_grid=param_grid)
+            grid_clf.fit(X=X_train, y=y_train)
+            predictions = grid_clf.predict(X_test)
+            trained_model = grid_clf
+            self.forest_clf = grid_clf
         return (trained_model, predictions, y_test)
     
 
@@ -157,6 +174,7 @@ class ClassifierSelection(ClassifierCreate):
         super().__init__(dataset, label, classifiers, exclude)    
 
     # TODO - returns list of dictionaries. key is name of model, value is classification report 
+    # TODO - or return dataframe. index is precision, recall & f1-score. Columns are model types
     def compare_and_select_model(self) -> None:
         log_model, log_preds, log_y_values = self.__train_logistic_classifier()
         forest_model, forest_preds, forest_y_values = self.__train_forest_classifier()
