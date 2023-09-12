@@ -102,7 +102,7 @@ class ClassifierCreate(ModelPrep):
             param_grid = {
                 'penalty': ['l1', 'l2', 'elasticnet'],
                 'l1_ratio': [.1, .5, .9, .99],
-                'C': np.logspace(0, 10. 5)
+                'C': np.logspace(0, 10, 5),
             }
             grid_clf = GridSearchCV(estimator=base_clf, param_grid=param_grid)
             grid_clf.fit(X=scaled_X_Train, y=y_train)
