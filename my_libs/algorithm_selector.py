@@ -18,6 +18,7 @@ NOTE: SVM not included. Too long to run. If I have a problem SVM's are a good se
 
 import numpy as np
 import pandas as pd
+from lightgbm import LGBMClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
@@ -25,6 +26,7 @@ from sklearn.metrics import (
 )
 from sklearn.model_selection import (train_test_split, GridSearchCV)
 from sklearn.preprocessing import StandardScaler
+from xgboost import XGBClassifier
 
 '''
 TODO:
@@ -147,9 +149,23 @@ class ClassifierCreate(ModelPrep):
         '''
         trained_model = None
         predictions = None
+        y_test = None
         if self.train_logistic_classifier:
-            pass
-        return
+            X = self.data.drop([self.label], axis=1)
+            y = self.data[self.label]
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.25, random_state=42)
+            base_xgboost = XGBClassifier(n_estimators=100, subsample=1.0)
+            param_grid = {
+                'learning_rate': [.1, .3],
+                'max_depth': [3, 5],
+                'gamma': [0, 1]
+            }
+            grid_clf = GridSearchCV(estimator=base_xgboost, param_grid=param_grid)
+            grid_clf.fit(X=X_train, y=y_train)
+            predictions = grid_clf.predict(X=X_test)
+            trained_model = grid_clf
+            self.lightgbm_clf = grid_clf
+        return (trained_model, predictions, y_test)
     
     def __train_lightgbm_classifier(self) -> tuple:
         '''
