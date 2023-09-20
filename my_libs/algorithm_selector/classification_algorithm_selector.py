@@ -1,16 +1,12 @@
+
 '''
-TODO
-Class does the following:
-- parameters
-- dataset
-- list of models to try
-- list of features to exclude
+Adam Forestier
+September 20, 2023
+This file contains classes to compare multiple classification algorithms for a given dataset and rank the models
+'''
 
-Methods to do following:
-- Creates, trains, scales (as needed), fits model
-- Models evaluated & ranked according to scoring metrics
-- Returns best scoring model
 
+'''
 NOTE: Classification Only
 NOTE: Not for simple models. If all I think I need is a simple KNN model, I should just make one for the problem at hand
 NOTE: SVM not included. Too long to run. If I have a problem SVM's are a good selection for, just create one  
@@ -22,11 +18,8 @@ from catboost import CatBoostClassifier
 from lightgbm import LGBMClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import (
-    accuracy_score, confusion_matrix, classification_report, ConfusionMatrixDisplay, RocCurveDisplay, auc, roc_curve
-)
-from sklearn.model_selection import (cross_val_score, GridSearchCV, train_test_split)
-from sklearn.model_selection import cross_val_score
+from sklearn.metrics import classification_report
+from sklearn.model_selection import (cross_val_score, cross_val_predict, GridSearchCV, train_test_split)
 from sklearn.preprocessing import StandardScaler
 from xgboost import XGBClassifier
 
@@ -59,7 +52,7 @@ class ModelPrep():
         return
     
     def __drop_exclude_features(self) -> None:
-        self.data = self.data.drop(self.features_to_exclude)
+        self.data = self.data.drop(self.features_to_exclude, axis=1)
         return
     
     def __check_models(self) -> None:
@@ -77,8 +70,8 @@ class ModelPrep():
     
 # Train models, assign them to parameters
 class ClassifierCreate(ModelPrep):
-    def __init__(self, dataset: pd.DataFrame, label: str, classifiers: list, exclude: list) -> None:
-        super().__init__(dataset, label, classifiers, exclude)
+    def __init__(self, dataset: pd.DataFrame, label: str, cross_validation_folds: int, classifiers: list, exclude: list) -> None:
+        super().__init__(dataset, label, cross_validation_folds, classifiers, exclude)
         self.log_clf = None
         self.forest_clf = None
         self.xgboost_clf = None
@@ -87,9 +80,6 @@ class ClassifierCreate(ModelPrep):
         return 
 
     def __train_logistic_classifier(self) -> tuple(LogisticRegression, pd.Series):
-        '''
-        return created model its predictions on test data and actual y values
-        '''
         trained_model = None
         predictions = None
         y_test = None
@@ -108,15 +98,13 @@ class ClassifierCreate(ModelPrep):
             }
             grid_clf = GridSearchCV(estimator=base_clf, param_grid=param_grid)
             grid_clf.fit(X=scaled_X_Train, y=y_train)
-            predictions = grid_clf.predict(X=scaled_X_Test)
+            predictions = cross_val_predict(estimator=grid_clf, X=scaled_X_Test, y=y_test, cv=self.cv_folds)
+            # predictions = grid_clf.predict(X=scaled_X_Test)
             trained_model = grid_clf
             self.log_clf = grid_clf
         return (trained_model, predictions, y_test)
     
     def __train_forest_classifier(self) -> tuple:
-        '''
-        return created model its predictions on test data and actual y values
-        '''
         trained_model = None
         predictions = None
         y_test = None
@@ -131,16 +119,14 @@ class ClassifierCreate(ModelPrep):
             }
             grid_clf = GridSearchCV(estimator=base_clf, param_grid=param_grid)
             grid_clf.fit(X=X_train, y=y_train)
-            predictions = grid_clf.predict(X_test)
+            predictions = cross_val_predict(estimator=grid_clf, X=X_test, y=y_test, cv=self.cv_folds)
+            # predictions = grid_clf.predict(X_test)
             trained_model = grid_clf
             self.forest_clf = grid_clf
         return (trained_model, predictions, y_test)
     
 
     def __train_xgboost_classifier(self) -> tuple:
-        '''
-        return created model
-        '''
         trained_model = None
         predictions = None
         y_test = None
@@ -155,7 +141,8 @@ class ClassifierCreate(ModelPrep):
             }
             grid_clf = GridSearchCV(estimator=base_xgboost, param_grid=param_grid)
             grid_clf.fit(X=X_train, y=y_train)
-            predictions = grid_clf.predict(X=X_test)
+            predictions = cross_val_predict(estimator=grid_clf, X=X_test, y=y_test, cv=self.cv_folds)
+            # predictions = grid_clf.predict(X=X_test)
             trained_model = grid_clf
             self.xgboost_clf = grid_clf
         return (trained_model, predictions, y_test)
@@ -178,10 +165,11 @@ class ClassifierCreate(ModelPrep):
             }
             grid_clf = GridSearchCV(estimator=base_lightgbm, param_grid=param_grid)
             grid_clf.fit(X=X_train, y=y_train)
-            predictions = grid_clf.predict(X=X_test)
+            predictions = cross_val_predict(estimator=grid_clf, X=X_test, y=y_test, cv=self.cv_folds)
+            # predictions = grid_clf.predict(X=X_test)
             trained_model = grid_clf
             self.lightgbm_clf = grid_clf
-        return (trained_model, predictions, y_test)
+        return (trained_model, predictions)
 
     def __train_catboost_classifier(self) -> None:
         '''
@@ -193,7 +181,7 @@ class ClassifierCreate(ModelPrep):
         if self.train_logistic_classifier:
             X = self.data.drop([self.label], axis=1)
             y = self.data[self.label]
-            X_test, X_train, y_test, y_train = train_test_split(X, y, test_size=.25, random_state=42)
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.25, random_state=42)
             base_cat = CatBoostClassifier(iterations=100, subsample=1.0)
             param_grid = {
                 'learning_rate': [.05, .1, .3],
@@ -201,24 +189,38 @@ class ClassifierCreate(ModelPrep):
             }
             grid_clf = GridSearchCV(estimator=base_cat, param_grid=param_grid)
             grid_clf.fit(X=X_train, y=y_train)
-            predictions = grid_clf.predict(X=X_test)
+            predictions = cross_val_predict(estimator=grid_clf, X=X_test, y=y_test, cv=self.cv_folds)
+            # predictions = grid_clf.predict(X=X_test)
             trained_model = grid_clf
             self.cat_clf = grid_clf
         return (trained_model, predictions, y_test)
     
-
-# select best model
 class ClassifierSelection(ClassifierCreate):
-    def __init__(self, dataset: pd.DataFrame, label: str, classifiers: list, exclude: list) -> None:
-        super().__init__(dataset, label, classifiers, exclude)    
+    def __init__(self, dataset: pd.DataFrame, label: str, cross_validation_folds: int, classifiers: list, exclude: list) -> None:
+        super().__init__(dataset, label, cross_validation_folds, classifiers, exclude)    
+    
+    def classification_report_scores(self) -> None:
+        c_reports = []
+        if self.log_clf:
+            log_model, log_preds, log_y_test = self.__train_logistic_classifier()
+            logistic_regression_classification_report = classification_report(y_true=log_y_test, y_pred=log_preds)
+            c_reports.append(logistic_regression_classification_report)
+        if self.forest_clf:
+            forest_model, forest_preds, forest_y_test = self.__train_forest_classifier()
+            random_forest_classification_report = classification_report(y_true=forest_y_test, y_pred=forest_preds)
+            c_reports.append(random_forest_classification_report)
+        if self.xgboost_clf:    
+            xg_model, xg_preds, xg_y_test = self.__train_xgboost_classifier()
+            xg_boost_classification_report = classification_report(y_true=xg_y_test, y_pred=xg_preds)
+            c_reports.append(xg_boost_classification_report)
+        if self.lightgbm_clf:
+            lgbm_model, lgbm_preds, lgbm_y_test = self.__train_lightgbm_classifier()
+            lightgbm_classification_report = classification_report(y_true=lgbm_y_test, y_pred=lgbm_preds)
+            c_reports.append(lightgbm_classification_report)
+        if self.cat_clf:
+            cat_model, cat_preds, cat_y_test = self.__train_catboost_classifier()
+            catboost_classification_report = classification_report(y_true=cat_y_test, y_pred=cat_preds)
+            c_reports.append(catboost_classification_report)
 
-    # TODO - returns list of dictionaries. key is name of model, value is classification report 
-    # TODO - or return dataframe. index is precision, recall & f1-score. Columns are model types
-    # TODO - return cross_val_scores for each model. TODO: use self.cv_folds as cv parameter (return in tuple w/ dictionary or put in as index in dataframe)
-    def compare_and_select_model(self) -> None:
-        log_model, log_preds, log_y_values = self.__train_logistic_classifier()
-        forest_model, forest_preds, forest_y_values = self.__train_forest_classifier()
-        xg_model, xg_preds, xg_y_values = self.__train_xgboost_classifier()
-        lgbm_model, lgbm_preds, lgbm_y_values = self.__train_lightgbm_classifier()
-        cat_model, cat_preds, cat_y_values = self.__train_catboost_classifier()
-        pass
+        for report in c_reports:
+            print(report)
