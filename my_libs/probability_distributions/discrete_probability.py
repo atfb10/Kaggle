@@ -103,4 +103,3 @@ def poisson_distribution(l: float, x: int) -> float:
 
     result = (EULER ** (-1 * l)) * (l ** x) / factorial(x)
     return round(result, 4)
-
