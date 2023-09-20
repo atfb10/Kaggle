@@ -77,9 +77,8 @@ class ClassifierCreate(ModelPrep):
         self.xgboost_clf = None
         self.lightgbm_clf = None
         self.cat_clf = None
-        return 
 
-    def __train_logistic_classifier(self) -> tuple(LogisticRegression, pd.Series):
+    def __train_logistic_classifier(self) -> tuple:
         trained_model = None
         predictions = None
         y_test = None
@@ -197,7 +196,7 @@ class ClassifierCreate(ModelPrep):
     
 class ClassifierSelection(ClassifierCreate):
     def __init__(self, dataset: pd.DataFrame, label: str, cross_validation_folds: int, classifiers: list, exclude: list) -> None:
-        super().__init__(dataset, label, cross_validation_folds, classifiers, exclude)    
+        super().__init__(dataset, label, cross_validation_folds, classifiers, exclude)
     
     def classification_report_scores(self) -> None:
         c_reports = []
