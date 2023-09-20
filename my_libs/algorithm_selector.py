@@ -25,7 +25,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
     accuracy_score, confusion_matrix, classification_report, ConfusionMatrixDisplay, RocCurveDisplay, auc, roc_curve
 )
-from sklearn.model_selection import (train_test_split, GridSearchCV)
+from sklearn.model_selection import (cross_val_score, GridSearchCV, train_test_split)
+from sklearn.model_selection import cross_val_score
 from sklearn.preprocessing import StandardScaler
 from xgboost import XGBClassifier
 
@@ -39,10 +40,11 @@ CAT = 'catboost'
 # Prep models for training
 class ModelPrep():
 
-    def __init__(self, dataset: pd.DataFrame, label: str, classifiers: list, exclude=None) -> None: # Exclude is list, but if not included defaults to none
+    def __init__(self, dataset: pd.DataFrame, label: str, cross_validation_folds: int, classifiers: list, exclude=None) -> None: # Exclude is list, but if not included defaults to none
         self.data = dataset
         self.label = label
         self.classifiers = classifiers
+        self.cv_folds = cross_validation_folds
         self.features_to_exclude = exclude
         self.train_logistic_classifier = False
         self.train_randomforest_classifier = False
@@ -212,6 +214,7 @@ class ClassifierSelection(ClassifierCreate):
 
     # TODO - returns list of dictionaries. key is name of model, value is classification report 
     # TODO - or return dataframe. index is precision, recall & f1-score. Columns are model types
+    # TODO - return cross_val_scores for each model. TODO: use self.cv_folds as cv parameter (return in tuple w/ dictionary or put in as index in dataframe)
     def compare_and_select_model(self) -> None:
         log_model, log_preds, log_y_values = self.__train_logistic_classifier()
         forest_model, forest_preds, forest_y_values = self.__train_forest_classifier()
