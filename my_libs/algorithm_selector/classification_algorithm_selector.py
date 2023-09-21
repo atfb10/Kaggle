@@ -1,15 +1,8 @@
 
 '''
 Adam Forestier
-September 20, 2023
-This file contains classes to compare multiple classification algorithms for a given dataset and rank the models
-'''
-
-
-'''
-NOTE: Classification Only
-NOTE: Not for simple models. If all I think I need is a simple KNN model, I should just make one for the problem at hand
-NOTE: SVM not included. Too long to run. If I have a problem SVM's are a good selection for, just create one  
+September 21, 2023
+This file contains a class to train multiple classification algorithms and display the classification reports for comparison
 '''
 
 import numpy as np
@@ -32,6 +25,16 @@ CAT = 'catboost'
     
 class ClassifierSelect():
     def __init__(self, dataset: pd.DataFrame, label: str, cross_validation_folds: int, classifiers: list, exclude: list) -> None:
+        """
+        Initialize the ClassifierSelect class.
+
+        Args:
+            dataset (pd.DataFrame): The input dataset containing features and labels.
+            label (str): The name of the label column in the dataset.
+            cross_validation_folds (int): The number of cross-validation folds to use.
+            classifiers (list): A list of classifier names to train and evaluate.
+            exclude (list): A list of feature names to exclude from the dataset.
+        """
         self.data = dataset
         self.label = label
         self.cv_folds = cross_validation_folds
@@ -47,10 +50,19 @@ class ClassifierSelect():
         return
     
     def __drop_exclude_features(self) -> None:
+        """
+        Drop excluded features from the dataset.
+        """
         self.data = self.data.drop(self.features_to_exclude, axis=1)
         return
     
     def __train_logistic_classifier(self) -> tuple:
+        """
+        Train a logistic regression classifier.
+
+        Returns:
+            tuple: A tuple containing the trained model, predictions, and true labels.
+        """
         trained_model = None
         predictions = None
         y_test = None
@@ -78,7 +90,12 @@ class ClassifierSelect():
         return (trained_model, predictions, y_test)
     
     def __train_forest_classifier(self) -> tuple:
-        print('forest Found')
+        """
+        Train a random forest classifier.
+
+        Returns:
+            tuple: A tuple containing the trained model, predictions, and true labels.
+        """
         trained_model = None
         predictions = None
         y_test = None
@@ -102,6 +119,12 @@ class ClassifierSelect():
     
 
     def __train_xgboost_classifier(self) -> tuple:
+        """
+        Train a xgboost classifier.
+
+        Returns:
+            tuple: A tuple containing the trained model, predictions, and true labels.
+        """
         trained_model = None
         predictions = None
         y_test = None
@@ -124,9 +147,12 @@ class ClassifierSelect():
         return (trained_model, predictions, y_test)
     
     def __train_lightgbm_classifier(self) -> tuple:
-        '''
-        return created model
-        '''
+        """
+        Train a LightGBM classifier.
+
+        Returns:
+            tuple: A tuple containing the trained model, predictions, and true labels.
+        """
         trained_model = None
         predictions = None
         y_test = None
@@ -147,6 +173,12 @@ class ClassifierSelect():
         return (trained_model, predictions, y_test)
 
     def __train_catboost_classifier(self) -> None:
+        """
+        Train a catboost classifier.
+
+        Returns:
+            tuple: A tuple containing the trained model, predictions, and true labels.
+        """
         trained_model = None
         predictions = None
         y_test = None
@@ -169,6 +201,9 @@ class ClassifierSelect():
         return (trained_model, predictions, y_test)
     
     def classification_report_scores(self) -> None:
+        '''
+        Display classification reports for multiple classifiers
+        '''
         c_reports = []
         log_model, log_preds, log_y_test = self.__train_logistic_classifier()
         logistic_regression_classification_report = classification_report(y_true=log_y_test, y_pred=log_preds)
