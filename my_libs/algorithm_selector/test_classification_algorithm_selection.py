@@ -1,5 +1,5 @@
 import pandas as pd
-from classification_algorithm_selector import ClassifierSelection
+from classification_algorithm_selector import ClassifierSelect
 
 # Constants
 LOG = 'logistic'
@@ -8,15 +8,14 @@ XG = 'xgboost'
 L = 'light'
 CAT = 'catboost'
 N_FOLDS = 5
-LABEL = 'test_result'
+TEST1_LABEL = 'test_result'
+TEST2_LABEL = 'species'
 FEATURES_TO_EXCLUDE = None
-
-
+TEST1 = 'hearing_test.csv'
+TEST2 = 'iris.csv'
 
 # Initialize & test
-df = pd.read_csv('hearing_test.csv')
-models = [LOG, F, XG, L, CAT]
-model_comparison = ClassifierSelection(dataset=df, label=LABEL, cross_validation_folds=N_FOLDS, classifiers=models, exclude=None)
+models = [LOG, LOG, F, XG, L, CAT]
+df = pd.read_csv(TEST2)
+model_comparison = ClassifierSelect(dataset=df, label=TEST2_LABEL, classifiers=models, cross_validation_folds=N_FOLDS, exclude=None)
 model_comparison.classification_report_scores()
-
-# BUG: not instantiating models - need to instantiate attributes in parent class BEFORE calling train in ClassifierSelection
