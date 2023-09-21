@@ -7,6 +7,7 @@ This file contains a class to train multiple classification algorithms and displ
 
 import numpy as np
 import pandas as pd
+import warnings
 from catboost import CatBoostClassifier
 from lightgbm import LGBMClassifier
 from sklearn.ensemble import RandomForestClassifier
@@ -15,6 +16,10 @@ from sklearn.metrics import classification_report
 from sklearn.model_selection import (cross_val_predict, GridSearchCV, train_test_split)
 from sklearn.preprocessing import (LabelEncoder, StandardScaler)
 from xgboost import XGBClassifier
+
+# Ignore warnings from logistic regression model saying l1_ratio is only used for elasticnet. I know this, implementing GridSearch
+warnings.filterwarnings('ignore')
+
 
 # Constants
 LOG = 'logistic'
@@ -66,27 +71,25 @@ class ClassifierSelect():
         trained_model = None
         predictions = None
         y_test = None
-        print(self.models)
-        if "logistic" in self.models:
-            label_encoder = LabelEncoder()
-            self.data[self.label] = label_encoder.fit_transform(self.data[self.label])
-            X = self.data.drop([self.label], axis=1)
-            y = self.data[self.label]
-            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.25, random_state=42)
-            scaler = StandardScaler()
-            scaled_X_Train = scaler.fit_transform(X=X_train)
-            scaled_X_Test = scaler.transform(X=X_test)
-            base_clf = LogisticRegression(solver='saga', multi_class='auto', max_iter=5000)
-            param_grid = {
-                'penalty': ['l1', 'l2', 'elasticnet'],
-                'l1_ratio': [.1, .5, .9, .99],
-                'C': np.logspace(0, 10, 5),
-            }
-            grid_clf = GridSearchCV(estimator=base_clf, param_grid=param_grid)
-            grid_clf.fit(X=scaled_X_Train, y=y_train)
-            predictions = cross_val_predict(estimator=grid_clf, X=scaled_X_Test, y=y_test, cv=self.cv_folds)
-            trained_model = grid_clf
-            self.log_clf = grid_clf
+        label_encoder = LabelEncoder()
+        self.data[self.label] = label_encoder.fit_transform(self.data[self.label])
+        X = self.data.drop([self.label], axis=1)
+        y = self.data[self.label]
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.25, random_state=42)
+        scaler = StandardScaler()
+        scaled_X_Train = scaler.fit_transform(X=X_train)
+        scaled_X_Test = scaler.transform(X=X_test)
+        base_clf = LogisticRegression(solver='saga', multi_class='auto', max_iter=5000)
+        param_grid = {
+            'penalty': ['l1', 'l2', 'elasticnet'],
+            'l1_ratio': [.1, .5, .9, .99],
+            'C': np.logspace(0, 10, 5),
+        }
+        grid_clf = GridSearchCV(estimator=base_clf, param_grid=param_grid)
+        grid_clf.fit(X=scaled_X_Train, y=y_train)
+        predictions = cross_val_predict(estimator=grid_clf, X=scaled_X_Test, y=y_test, cv=self.cv_folds)
+        trained_model = grid_clf
+        self.log_clf = grid_clf
         return (trained_model, predictions, y_test)
     
     def __train_forest_classifier(self) -> tuple:
@@ -99,22 +102,21 @@ class ClassifierSelect():
         trained_model = None
         predictions = None
         y_test = None
-        if F in self.models:
-            label_encoder = LabelEncoder()
-            self.data[self.label] = label_encoder.fit_transform(self.data[self.label])
-            X = self.data.drop([self.label], axis=1)
-            y = self.data[self.label]
-            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.25, random_state=42)
-            base_clf = RandomForestClassifier(n_estimators=100, oob_score=False, bootstrap=True)
-            param_grid = {
-                'max_features': [3, 4],
-                'max_depth': [3, 5]
-            }
-            grid_clf = GridSearchCV(estimator=base_clf, param_grid=param_grid)
-            grid_clf.fit(X=X_train, y=y_train)
-            predictions = cross_val_predict(estimator=grid_clf, X=X_test, y=y_test, cv=self.cv_folds)
-            trained_model = grid_clf
-            self.forest_clf = grid_clf
+        label_encoder = LabelEncoder()
+        self.data[self.label] = label_encoder.fit_transform(self.data[self.label])
+        X = self.data.drop([self.label], axis=1)
+        y = self.data[self.label]
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.25, random_state=42)
+        base_clf = RandomForestClassifier(n_estimators=100, oob_score=False, bootstrap=True)
+        param_grid = {
+            'max_features': [3, 4],
+            'max_depth': [3, 5]
+        }
+        grid_clf = GridSearchCV(estimator=base_clf, param_grid=param_grid)
+        grid_clf.fit(X=X_train, y=y_train)
+        predictions = cross_val_predict(estimator=grid_clf, X=X_test, y=y_test, cv=self.cv_folds)
+        trained_model = grid_clf
+        self.forest_clf = grid_clf
         return (trained_model, predictions, y_test)
     
 
@@ -128,22 +130,21 @@ class ClassifierSelect():
         trained_model = None
         predictions = None
         y_test = None
-        if XG in self.models:
-            label_encoder = LabelEncoder()
-            self.data[self.label] = label_encoder.fit_transform(self.data[self.label])
-            X = self.data.drop([self.label], axis=1)
-            y = self.data[self.label]
-            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.25, random_state=42)
-            base_xgboost = XGBClassifier(n_estimators=100, subsample=1.0)
-            param_grid = {
-                'learning_rate': [.05, .1, .3],
-                'max_depth': [3, 5]
-            }
-            grid_clf = GridSearchCV(estimator=base_xgboost, param_grid=param_grid)
-            grid_clf.fit(X=X_train, y=y_train)
-            predictions = cross_val_predict(estimator=grid_clf, X=X_test, y=y_test, cv=self.cv_folds)
-            trained_model = grid_clf
-            self.xgboost_clf = grid_clf
+        label_encoder = LabelEncoder()
+        self.data[self.label] = label_encoder.fit_transform(self.data[self.label])
+        X = self.data.drop([self.label], axis=1)
+        y = self.data[self.label]
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.25, random_state=42)
+        base_xgboost = XGBClassifier(n_estimators=100, subsample=1.0)
+        param_grid = {
+            'learning_rate': [.05, .1, .3],
+            'max_depth': [3, 5]
+        }
+        grid_clf = GridSearchCV(estimator=base_xgboost, param_grid=param_grid)
+        grid_clf.fit(X=X_train, y=y_train)
+        predictions = cross_val_predict(estimator=grid_clf, X=X_test, y=y_test, cv=self.cv_folds)
+        trained_model = grid_clf
+        self.xgboost_clf = grid_clf
         return (trained_model, predictions, y_test)
     
     def __train_lightgbm_classifier(self) -> tuple:
@@ -156,20 +157,21 @@ class ClassifierSelect():
         trained_model = None
         predictions = None
         y_test = None
-        if L in self.models:
-            X = self.data.drop([self.label], axis=1)
-            y = self.data[self.label]
-            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.25, random_state=42)
-            base_lightgbm = LGBMClassifier(n_estimators=100, subsample=1.0)
-            param_grid = {
-                'learning_rate': [.05, .1, .3],
-                'max_depth': [3, 5]
-            }
-            grid_clf = GridSearchCV(estimator=base_lightgbm, param_grid=param_grid)
-            grid_clf.fit(X=X_train, y=y_train)
-            predictions = cross_val_predict(estimator=grid_clf, X=X_test, y=y_test, cv=self.cv_folds)
-            trained_model = grid_clf
-            self.lightgbm_clf = grid_clf
+        label_encoder = LabelEncoder()
+        self.data[self.label] = label_encoder.fit_transform(self.data[self.label])
+        X = self.data.drop([self.label], axis=1)
+        y = self.data[self.label]
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.25, random_state=42)
+        base_lightgbm = LGBMClassifier(n_estimators=100, subsample=1.0, verbose=-1)
+        param_grid = {
+            'learning_rate': [.05, .1, .3],
+            'max_depth': [3, 5]
+        }
+        grid_clf = GridSearchCV(estimator=base_lightgbm, param_grid=param_grid)
+        grid_clf.fit(X=X_train, y=y_train)
+        predictions = cross_val_predict(estimator=grid_clf, X=X_test, y=y_test, cv=self.cv_folds)
+        trained_model = grid_clf
+        self.lightgbm_clf = grid_clf
         return (trained_model, predictions, y_test)
 
     def __train_catboost_classifier(self) -> None:
@@ -182,22 +184,19 @@ class ClassifierSelect():
         trained_model = None
         predictions = None
         y_test = None
-        if CAT in self.models:
-            print('CAT Found')
-            X = self.data.drop([self.label], axis=1)
-            y = self.data[self.label]
-            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.25, random_state=42)
-            base_cat = CatBoostClassifier(iterations=100)
-            param_grid = {
-                'learning_rate': [.05, .1, .3],
-                'depth': [3, 5]
-            }
-            grid_clf = GridSearchCV(estimator=base_cat, param_grid=param_grid)
-            grid_clf.fit(X=X_train, y=y_train)
-            predictions = cross_val_predict(estimator=grid_clf, X=X_test, y=y_test, cv=self.cv_folds)
-            # predictions = grid_clf.predict(X=X_test)
-            trained_model = grid_clf
-            self.cat_clf = grid_clf
+        X = self.data.drop([self.label], axis=1)
+        y = self.data[self.label]
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.25, random_state=42)
+        base_cat = CatBoostClassifier(iterations=100, verbose=0)
+        param_grid = {
+            'learning_rate': [.05, .1, .3],
+            'depth': [3, 5]
+        }
+        grid_clf = GridSearchCV(estimator=base_cat, param_grid=param_grid)
+        grid_clf.fit(X=X_train, y=y_train)
+        predictions = cross_val_predict(estimator=grid_clf, X=X_test, y=y_test, cv=self.cv_folds)
+        trained_model = grid_clf
+        self.cat_clf = grid_clf
         return (trained_model, predictions, y_test)
     
     def classification_report_scores(self) -> None:
@@ -205,21 +204,35 @@ class ClassifierSelect():
         Display classification reports for multiple classifiers
         '''
         c_reports = []
-        log_model, log_preds, log_y_test = self.__train_logistic_classifier()
-        logistic_regression_classification_report = classification_report(y_true=log_y_test, y_pred=log_preds)
-        c_reports.append(logistic_regression_classification_report)
-        forest_model, forest_preds, forest_y_test = self.__train_forest_classifier()
-        random_forest_classification_report = classification_report(y_true=forest_y_test, y_pred=forest_preds)
-        c_reports.append(random_forest_classification_report)
-        xg_model, xg_preds, xg_y_test = self.__train_xgboost_classifier()
-        xg_boost_classification_report = classification_report(y_true=xg_y_test, y_pred=xg_preds)
-        c_reports.append(xg_boost_classification_report)
-        lgbm_model, lgbm_preds, lgbm_y_test = self.__train_lightgbm_classifier()
-        lightgbm_classification_report = classification_report(y_true=lgbm_y_test, y_pred=lgbm_preds)
-        c_reports.append(lightgbm_classification_report)
-        cat_model, cat_preds, cat_y_test = self.__train_catboost_classifier()
-        catboost_classification_report = classification_report(y_true=cat_y_test, y_pred=cat_preds)
-        c_reports.append(catboost_classification_report)
+        if "logistic" in self.models:
+            log_model, log_preds, log_y_test = self.__train_logistic_classifier()
+            print('Logistic Regression Model')
+            print(f'{classification_report(y_true=log_y_test, y_pred=log_preds)}\n')
+            # c_reports.append(logistic_regression_classification_report)
+        
+        if F in self.models:        
+            forest_model, forest_preds, forest_y_test = self.__train_forest_classifier()
+            print('Random Forest Model')
+            print(f'{classification_report(y_true=forest_y_test, y_pred=forest_preds)}\n')
+            # c_reports.append(random_forest_classification_report)
+        
+        if XG in self.models:
+            xg_model, xg_preds, xg_y_test = self.__train_xgboost_classifier()
+            print('XGBoost Model')
+            print(f'{classification_report(y_true=xg_y_test, y_pred=xg_preds)}\n')
+            # c_reports.append(xg_boost_classification_report)
+        
+        if L in self.models:
+            lgbm_model, lgbm_preds, lgbm_y_test = self.__train_lightgbm_classifier()
+            print('Light GBM Model')
+            print(f'{classification_report(y_true=lgbm_y_test, y_pred=lgbm_preds)}\n')
+            # c_reports.append(lightgbm_classification_report)
+            
+        if CAT in self.models:
+            cat_model, cat_preds, cat_y_test = self.__train_catboost_classifier()
+            print('CatBoost Model')
+            print(f'{classification_report(y_true=cat_y_test, y_pred=cat_preds)}\n')
+            # c_reports.append(catboost_classification_report)
 
         print('\n')
         for report in c_reports:

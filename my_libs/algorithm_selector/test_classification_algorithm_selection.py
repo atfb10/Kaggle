@@ -19,3 +19,7 @@ models = [LOG, LOG, F, XG, L, CAT]
 df = pd.read_csv(TEST2)
 model_comparison = ClassifierSelect(dataset=df, label=TEST2_LABEL, classifiers=models, cross_validation_folds=N_FOLDS, exclude=None)
 model_comparison.classification_report_scores()
+print(model_comparison.log_clf.best_estimator_)
+print(model_comparison.log_clf.best_params_)
+print(model_comparison.log_clf.best_score_)
+print(model_comparison.log_clf.best_index_)
